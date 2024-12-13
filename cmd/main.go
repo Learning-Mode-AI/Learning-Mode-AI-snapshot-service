@@ -25,9 +25,9 @@ var ctx = context.Background()
 // Initialize Redis connection
 func initRedis() {
 	redisClient = redis.NewClient(&redis.Options{
-		Addr:     "redis:6379", // Redis address
-		Password: "",           // No password set
-		DB:       0,            // Use default DB
+		Addr:     "localhost:6379", // Redis address
+		Password: "",               // No password set
+		DB:       0,                // Use default DB
 	})
 
 	// Test the connection

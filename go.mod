@@ -1,4 +1,4 @@
-module Youtube-Learning-Mode-Video-Processing-Service
+module Learning-Mode-AI-Snapshot-Service
 
 go 1.21.5
 
