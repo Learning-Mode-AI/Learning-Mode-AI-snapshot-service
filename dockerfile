@@ -19,8 +19,8 @@ RUN go build -o /app/main ./cmd/main.go
 # Stage 2: Create a smaller image for the application
 FROM alpine:latest
 
-# Install ca-certificates to enable HTTPS and other utilities
-RUN apk --no-cache add ca-certificates ffmpeg yt-dlp
+# Install ca-certificates, ffmpeg, yt-dlp, and Python
+RUN apk --no-cache add ca-certificates ffmpeg python3 py3-pip yt-dlp
 
 # Set the working directory inside the container
 WORKDIR /root/
@@ -33,3 +33,4 @@ EXPOSE 8081
 
 # Command to run the application
 CMD ["./main"]
+

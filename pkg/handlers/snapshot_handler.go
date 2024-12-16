@@ -3,8 +3,10 @@ package handlers
 import (
 	"Learning-Mode-AI-Snapshot-Service/pkg/services"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
+	"time"
 )
 
 func ProcessSnapshots(w http.ResponseWriter, r *http.Request) {
@@ -20,21 +22,50 @@ func ProcessSnapshots(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Capture a snapshot for each timestamp
-	for _, timestamp := range req.Timestamps {
-		// Store the snapshot in Redis under the video ID
-		imagePath, err := services.CaptureSnapshot(req.VideoURL, timestamp)
+	// Ensure the video ID is initialized in Redis
+	exists, err := services.RedisClient.Exists(services.Ctx, req.VideoID).Result()
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to check Redis for video ID: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	if exists == 0 {
+		videoMetadata := map[string]interface{}{
+			"video_id": req.VideoID,
+			"created":  fmt.Sprintf("%v", time.Now()),
+		}
+
+		videoMetadataJSON, err := json.Marshal(videoMetadata)
 		if err != nil {
-			log.Printf("Failed to capture snapshot: %v", err)
+			http.Error(w, "Failed to initialize Redis for video ID", http.StatusInternalServerError)
+			return
+		}
+
+		err = services.RedisClient.Set(services.Ctx, req.VideoID, videoMetadataJSON, 0).Err()
+		if err != nil {
+			http.Error(w, "Failed to store video metadata in Redis", http.StatusInternalServerError)
+			return
+		}
+		log.Printf("Initialized video ID in Redis: %s", req.VideoID)
+	}
+
+	// Process each timestamp
+	for _, timestamp := range req.Timestamps {
+		// Capture a snapshot for each timestamp
+		imagePath, err := services.CaptureSnapshot(req.VideoURL, timestamp, req.VideoID)
+		if err != nil {
+			log.Printf("Failed to capture snapshot for %s: %v", timestamp, err)
 			continue
 		}
 
-		if err := services.StoreSnapshotInRedis(req.VideoID, timestamp, imagePath); err != nil {
-			log.Printf("Failed to store snapshot in Redis: %v", err)
+		// Store the snapshot in Redis under the video ID
+		err = services.StoreSnapshotInRedis(req.VideoID, timestamp, imagePath)
+		if err != nil {
+			log.Printf("Failed to store snapshot in Redis for %s: %v", timestamp, err)
 		}
 	}
 
 	// Minimal response: Success message
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"message": "Snapshots processed successfully"})
+	json.NewEncoder(w).Encode(map[string]string{"message": "Snapshots stored successfully"})
 }
