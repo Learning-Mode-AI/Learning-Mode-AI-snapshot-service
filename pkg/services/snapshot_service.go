@@ -23,38 +23,49 @@ func InitFolders() {
     log.Println("Storage folders initialized")
 }
 
-func CaptureSnapshot(videoURL, timestamp, videoID string) (string, error) {
-    // Define per-video folder for snapshots
-    videoSnapshotFolder := fmt.Sprintf("%s/%s", SnapshotFolder, videoID)
+// CaptureSnapshots processes multiple timestamps after downloading the video once
+func CaptureSnapshots(videoURL string, timestamps []string, videoID string) ([]string, error) {
+	// Define per-video folder for snapshots
+	videoSnapshotFolder := fmt.Sprintf("%s/%s", SnapshotFolder, videoID)
 
-    // Create the video-specific folder if it doesn't exist
-    if err := os.MkdirAll(videoSnapshotFolder, os.ModePerm); err != nil {
-        return "", fmt.Errorf("failed to create folder %s: %v", videoSnapshotFolder, err)
-    }
+	// Create the video-specific folder if it doesn't exist
+	if err := os.MkdirAll(videoSnapshotFolder, os.ModePerm); err != nil {
+		return nil, fmt.Errorf("failed to create folder %s: %v", videoSnapshotFolder, err)
+	}
 
-    // Define output video file (temporary video file for processing)
-    videoFile := fmt.Sprintf("%s/%s.mp4", VideoFolder, videoID)
+	// Define output video file
+	videoFile := fmt.Sprintf("%s/%s.mp4", VideoFolder, videoID)
 
-    // Download the video from YouTube using yt-dlp
-    downloadCmd := exec.Command("yt-dlp", "-f", "best", "-o", videoFile, videoURL)
-    err := downloadCmd.Run()
-    if err != nil {
-        return "", fmt.Errorf("failed to download video: %v", err)
-    }
+	// Check if the video file already exists to avoid redundant downloads
+	if _, err := os.Stat(videoFile); os.IsNotExist(err) {
+		// Download the video from YouTube using yt-dlp
+		log.Println("Downloading video...")
+		downloadCmd := exec.Command("yt-dlp", "-f", "best", "-o", videoFile, videoURL)
+		if err := downloadCmd.Run(); err != nil {
+			return nil, fmt.Errorf("failed to download video: %v", err)
+		}
+		log.Println("Video downloaded successfully.")
+	}
 
-    // Create output snapshot filename
-    filename := fmt.Sprintf("snapshot_%s.png", strings.ReplaceAll(timestamp, ":", "-"))
-    snapshotPath := fmt.Sprintf("%s/%s", videoSnapshotFolder, filename)
+	// Loop through timestamps to generate snapshots
+	var snapshotPaths []string
+	for _, timestamp := range timestamps {
+		filename := fmt.Sprintf("snapshot_%s.png", strings.ReplaceAll(timestamp, ":", "-"))
+		snapshotPath := fmt.Sprintf("%s/%s", videoSnapshotFolder, filename)
 
-    // Use ffmpeg to capture the snapshot at the given timestamp
-    ffmpegCmd := exec.Command("ffmpeg", "-y", "-i", videoFile, "-ss", timestamp, "-vframes", "1", snapshotPath)
-    err = ffmpegCmd.Run()
-    if err != nil {
-        return "", fmt.Errorf("failed to capture snapshot: %v", err)
-    }
+		// Use ffmpeg to capture the snapshot
+		log.Printf("Processing snapshot for timestamp %s...", timestamp)
+		ffmpegCmd := exec.Command("ffmpeg", "-y", "-i", videoFile, "-ss", timestamp, "-vframes", "1", snapshotPath)
+		if err := ffmpegCmd.Run(); err != nil {
+			log.Printf("Failed to capture snapshot at %s: %v", timestamp, err)
+			continue
+		}
 
-    // Optionally, remove the video file to save space
-    _ = exec.Command("rm", videoFile).Run()
+		snapshotPaths = append(snapshotPaths, snapshotPath)
+	}
 
-    return snapshotPath, nil
+	// Optionally remove the video file to save space
+	//_ = os.Remove(videoFile)
+
+	return snapshotPaths, nil
 }
