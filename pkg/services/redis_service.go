@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-
 	"github.com/go-redis/redis/v8"
 )
 
