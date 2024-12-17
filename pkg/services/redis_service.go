@@ -1,6 +1,7 @@
 package services
 
 import (
+	"Learning-Mode-AI-Snapshot-Service/pkg/config"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -16,7 +17,7 @@ var (
 
 func InitRedis() {
 	RedisClient = redis.NewClient(&redis.Options{
-		Addr:     "redis:6379", // Redis address
+		Addr:     config.RedisHost, // Redis address
 		Password: "",               // No password set
 		DB:       0,                // Use default DB
 	})
