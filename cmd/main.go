@@ -1,17 +1,27 @@
 package main
 
 import (
+	"Learning-Mode-AI-Snapshot-Service/pkg/config"
+	"Learning-Mode-AI-Snapshot-Service/pkg/router"
+	"Learning-Mode-AI-Snapshot-Service/pkg/services"
 	"log"
 	"net/http"
 
-	"Learning-Mode-AI-Snapshot-Service/pkg/router"
-	"Learning-Mode-AI-Snapshot-Service/pkg/services"
+	"github.com/joho/godotenv"
 )
 
+func init() {
+	err := godotenv.Load(".env")
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+	config.InitConfig()
+	services.InitRedis()
+}
 
 func main() {
-	// Initialize Redis connection
-	services.InitRedis()
+	// Initialize storage folders
+	services.InitFolders()
 
 	// Setup routes
 	router.SetupRoutes()
