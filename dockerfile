@@ -27,6 +27,7 @@ WORKDIR /root/
 
 # Copy the Go binary from the builder stage
 COPY --from=builder /app/main .
+COPY --from=builder /app/.env .
 
 # Expose the port on which the service will run
 EXPOSE 8081
