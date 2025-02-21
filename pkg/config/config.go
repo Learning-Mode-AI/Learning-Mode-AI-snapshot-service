@@ -15,7 +15,12 @@ func InitConfig() {
 		RedisHost = "localhost:6379"
 		fmt.Println("Running in local mode")
 	} else {
-		RedisHost = "redis:6379"
+		redisEnvHost := os.Getenv("REDIS_HOST")
+		if redisEnvHost != "" {
+			RedisHost = redisEnvHost
+		} else {
+			RedisHost = "redis:6379"
+		}
 		fmt.Println("Running in Docker mode")
 	}
 }
