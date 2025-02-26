@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+
 	"github.com/go-redis/redis/v8"
 )
 
@@ -16,13 +17,18 @@ var (
 )
 
 func InitRedis() {
+	var tlsConfig *tls.Config
+	if config.TLSEnabled {
+		tlsConfig = &tls.Config{
+			InsecureSkipVerify: true,
+		}
+	} else {
+		tlsConfig = nil
+	}
+
 	RedisClient = redis.NewClient(&redis.Options{
-		Addr:     config.RedisHost, // Redis address
-		TLSConfig: &tls.Config{
-			// Depending on your certificate setup,
-			// you might need to customize this further.
-			InsecureSkipVerify: true, // Use caution: this bypasses certificate verification.
-		},
+		Addr:      config.RedisHost, // Redis address
+		TLSConfig: tlsConfig,
 	})
 
 	err := RedisClient.Ping(Ctx).Err()
