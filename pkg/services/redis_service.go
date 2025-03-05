@@ -3,9 +3,11 @@ package services
 import (
 	"Learning-Mode-AI-Snapshot-Service/pkg/config"
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"log"
+
 	"github.com/go-redis/redis/v8"
 )
 
@@ -15,18 +17,24 @@ var (
 )
 
 func InitRedis() {
+	var tlsConfig *tls.Config
+	if config.TLSEnabled {
+		tlsConfig = &tls.Config{
+			InsecureSkipVerify: true,
+		}
+	} else {
+		tlsConfig = nil
+	}
+
 	RedisClient = redis.NewClient(&redis.Options{
-		Addr:     config.RedisHost, // Redis address
-		Password: "",               // No password set
-		DB:       0,                // Use default DB
+		Addr:      config.RedisHost, // Redis address
+		TLSConfig: tlsConfig,
 	})
 
-	// Test the connection
-	_, err := RedisClient.Ping(Ctx).Result()
+	err := RedisClient.Ping(Ctx).Err()
 	if err != nil {
-		log.Fatalf("Failed to connect to Redis: %v", err)
+		panic(err)
 	}
-	log.Println("Connected to Redis")
 }
 
 // StoreSnapshotInRedis saves the snapshot data to Redis under the video ID key
